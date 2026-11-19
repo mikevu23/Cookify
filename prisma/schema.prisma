@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String             @id @default(cuid())
+  name        String
+  handle      String             @unique
+  avatar      String
+  title       String             @default("Novice Cook")
+  totalXp     Int                @default(0)
+  level       Int                @default(1)
+  isAdmin     Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  skills      UserSkillXP[]
+  recipes     Recipe[]
+  mods        RecipeMod[]
+  votes       RecipeModVote[]
+  completions RecipeCompletion[]
+}
+
+model UserSkillXP {
+  id       String @id @default(cuid())
+  userId   String
+  skillKey String
+  xp       Int    @default(0)
+  level    Int    @default(1)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillKey])
+}
+
+model Recipe {
+  id            String             @id @default(cuid())
+  title         String
+  summary       String
+  prepTime      String
+  cookTime      String
+  difficulty    String
+  servings      Int                @default(2)
+  pantryMatched String             // JSON string array
+  ingredients   String             // JSON string array
+  instructions  String             // JSON string array
+  skillsAwarded String             // JSON string array of { skillKey, skillName, xp }
+  imageUrl      String?
+  authorId      String
+  author        User               @relation(fields: [authorId], references: [id])
+  createdAt     DateTime           @default(now())
+  mods          RecipeMod[]
+  completions   RecipeCompletion[]
+}
+
+model RecipeMod {
+  id          String          @id @default(cuid())
+  recipeId    String
+  recipe      Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User            @relation(fields: [authorId], references: [id])
+  title       String
+  category    String          @default("Technique") // Technique, Substitution, Flavor Boost, Dietary
+  stepNumber  Int?
+  instruction String
+  votesCount  Int             @default(0)
+  createdAt   DateTime        @default(now())
+  votes       RecipeModVote[]
+}
+
+model RecipeModVote {
+  id        String    @id @default(cuid())
+  modId     String
+  mod       RecipeMod @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+
+  @@unique([modId, userId])
+}
+
+model RecipeCompletion {
+  id        String   @id @default(cuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  photoUrl  String?
+  notes     String?
+  rating    Int      @default(5)
+  xpEarned  Int      @default(50)
+  createdAt DateTime @default(now())
+}
